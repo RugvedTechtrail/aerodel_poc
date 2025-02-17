@@ -1,0 +1,17 @@
+{
+  "[gradle]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[plaintext]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[xml]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[dart]": {
+    "editor.defaultFormatter": "Dart-Code.dart-code"
+  },
+  "[yaml]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
+}
