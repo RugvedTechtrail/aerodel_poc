@@ -1,5 +1,4 @@
 import 'dart:developer';
-
 import 'poc_safey_background_channel.dart';
 import 'poc_safey_platform_interface.dart';
 
@@ -9,12 +8,12 @@ class PocSafey extends BackgroundChannelPocSafey {
   }
 
   Future<void> scanDevices() {
-    log('raff sgg svfv');
+    log('scanning devices');
     return PocSafeyPlatform.instance.scanDevices();
   }
 
   Future<void> connectDevice() {
-    log('in connect device funciton retunign instanec');
+    log('in connect device function returning instance');
     return PocSafeyPlatform.instance.connectDevice();
   }
 
@@ -53,4 +52,7 @@ class PocSafey extends BackgroundChannelPocSafey {
   Future<void> setWeight(String weight) {
     return PocSafeyPlatform.instance.setWeight(int.parse(weight));
   }
+
+  @override
+  late Function(String filePath) onTestFileGenerated; // Add this line
 }
