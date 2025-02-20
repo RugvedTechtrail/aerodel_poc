@@ -624,12 +624,46 @@ import 'package:aerodel_poc/controllers/spirometer_controller.dart';
 import 'package:aerodel_poc/theme/apptheme.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'screens/home_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await requestPermissions();
   Get.put(SpirometryController()); // Initialize controller
   runApp(const MyApp());
+}
+
+Future requestPermissions() async {
+  final permissions = [
+    Permission.bluetooth,
+    Permission.bluetoothConnect,
+    Permission.bluetoothScan,
+    Permission.location,
+    Permission.storage,
+    Permission.manageExternalStorage,
+  ];
+
+  Map<Permission, PermissionStatus> statuses = await permissions.request();
+
+  // Specifically check storage permission
+  if (statuses[Permission.storage]!.isDenied) {
+    // Show app settings if permission is permanently denied
+    if (await Permission.storage.isPermanentlyDenied) {
+      await openAppSettings();
+    } else {
+      // Request permission again
+      await Permission.storage.request();
+    }
+  }
+
+  if (statuses[Permission.manageExternalStorage]!.isDenied) {
+    if (await Permission.manageExternalStorage.isPermanentlyDenied) {
+      await openAppSettings();
+    } else {
+      await Permission.manageExternalStorage.request();
+    }
+  }
 }
 
 class MyApp extends StatelessWidget {

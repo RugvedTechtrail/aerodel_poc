@@ -138,29 +138,41 @@ class SpirometryController extends GetxController {
     };
   }
 
-  Future<bool> requestPermissions() async {
-    final permissions = [
-      Permission.bluetooth,
-      Permission.bluetoothConnect,
-      Permission.bluetoothScan,
-      Permission.location,
-      Permission.storage,
-      Permission.manageExternalStorage,
-    ];
+  // Future requestPermissions() async {
+  //   final permissions = [
+  //     Permission.bluetooth,
+  //     Permission.bluetoothConnect,
+  //     Permission.bluetoothScan,
+  //     Permission.location,
+  //     Permission.storage,
+  //     Permission.manageExternalStorage,
+  //   ];
 
-    for (final permission in permissions) {
-      final status = await permission.request();
-      if (status.isDenied || status.isPermanentlyDenied) {
-        handleError('Permission denied: ${permission.toString()}');
-        return false;
-      }
-    }
-    return true;
-  }
+  //   Map<Permission, PermissionStatus> statuses = await permissions.request();
+
+  //   // Specifically check storage permission
+  //   if (statuses[Permission.storage]!.isDenied) {
+  //     // Show app settings if permission is permanently denied
+  //     if (await Permission.storage.isPermanentlyDenied) {
+  //       await openAppSettings();
+  //     } else {
+  //       // Request permission again
+  //       await Permission.storage.request();
+  //     }
+  //   }
+
+  //   if (statuses[Permission.manageExternalStorage]!.isDenied) {
+  //     if (await Permission.manageExternalStorage.isPermanentlyDenied) {
+  //       await openAppSettings();
+  //     } else {
+  //       await Permission.manageExternalStorage.request();
+  //     }
+  //   }
+  // }
 
   Future<void> scanDevices() async {
     try {
-      if (!await requestPermissions()) return;
+      // if (!await requestPermissions()) return;
 
       isScanning.value = true;
       devices.clear();
