@@ -425,6 +425,22 @@ class TestResultsPanel extends StatelessWidget {
     );
   }
 
+  // Widget _buildProgressBar(SpirometryController controller) {
+  //   return Column(
+  //     children: [
+  //       LinearProgressIndicator(
+  //         value: controller.currentProgress.value / 100,
+  //         minHeight: 10,
+  //         borderRadius: BorderRadius.circular(5),
+  //       ),
+  //       const SizedBox(height: 8),
+  //       Text(
+  //         'Progress: ${controller.currentProgress.value.toStringAsFixed(1)}%',
+  //         style: const TextStyle(fontWeight: FontWeight.bold),
+  //       ),
+  //     ],
+  //   );
+  // }
   Widget _buildProgressBar(SpirometryController controller) {
     return Column(
       children: [
@@ -434,9 +450,23 @@ class TestResultsPanel extends StatelessWidget {
           borderRadius: BorderRadius.circular(5),
         ),
         const SizedBox(height: 8),
-        Text(
-          'Progress: ${controller.currentProgress.value.toStringAsFixed(1)}%',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Progress: ${controller.currentProgress.value.toStringAsFixed(1)}%',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            // Add countdown timer display
+            if (controller.isTesting.value)
+              Text(
+                'Time remaining: ${controller.remainingTime.value}s',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
+                ),
+              ),
+          ],
         ),
       ],
     );

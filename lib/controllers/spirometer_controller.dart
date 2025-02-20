@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -12,6 +14,9 @@ class FlowVolumePoint {
 
 class SpirometryController extends GetxController {
   final PocSafey _pocSafey = PocSafey();
+  Timer? _testTimer;
+  static const int testDurationInSeconds = 6;
+  final RxInt remainingTime = testDurationInSeconds.obs;
 
   // Connection states
   final RxBool isConnected = false.obs;
@@ -182,8 +187,35 @@ class SpirometryController extends GetxController {
     }
   }
 
+  // Future<void> disconnectDevice() async {
+  //   try {
+  //     await _pocSafey.disconnectDevice();
+  //     isConnected.value = false;
+  //     isTesting.value = false;
+  //     isTestCompleted.value = false;
+
+  //     // Reset all test values
+  //     currentProgress.value = 0.0;
+  //     currentFlow.value = 0.0;
+  //     currentVolume.value = 0.0;
+  //     currentTime.value = 0.0;
+  //     flowArray.clear();
+  //     volumeArray.clear();
+  //     timeArray.clear();
+
+  //     Get.snackbar(
+  //       'Success',
+  //       'Device disconnected successfully',
+  //       backgroundColor: Colors.blue,
+  //       colorText: Colors.white,
+  //     );
+  //   } catch (e) {
+  //     handleError('Failed to disconnect device: $e');
+  //   }
+  // }
   Future<void> disconnectDevice() async {
     try {
+      _testTimer?.cancel(); // Cancel timer if active
       await _pocSafey.disconnectDevice();
       isConnected.value = false;
       isTesting.value = false;
@@ -194,6 +226,7 @@ class SpirometryController extends GetxController {
       currentFlow.value = 0.0;
       currentVolume.value = 0.0;
       currentTime.value = 0.0;
+      remainingTime.value = testDurationInSeconds;
       flowArray.clear();
       volumeArray.clear();
       timeArray.clear();
@@ -209,18 +242,59 @@ class SpirometryController extends GetxController {
     }
   }
 
+  // Future<void> startTrial() async {
+  //   try {
+  //     if (!isConnected.value) {
+  //       throw Exception('Please connect to a device first');
+  //     }
+  //     isTesting.value = true;
+  //     isTestCompleted.value = false;
+  //     await _pocSafey.startTrial();
+  //   } catch (e) {
+  //     handleError('Failed to start trial: $e');
+  //     isTesting.value = false;
+  //   }
+  // }
   Future<void> startTrial() async {
     try {
       if (!isConnected.value) {
         throw Exception('Please connect to a device first');
       }
+
+      // Reset and start timer
+      remainingTime.value = testDurationInSeconds;
       isTesting.value = true;
       isTestCompleted.value = false;
+
       await _pocSafey.startTrial();
+
+      // Start countdown timer
+      _testTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        remainingTime.value--;
+
+        if (remainingTime.value <= 0) {
+          stopTest();
+          timer.cancel();
+        }
+      });
     } catch (e) {
       handleError('Failed to start trial: $e');
       isTesting.value = false;
     }
+  }
+
+  // Add method to stop the test
+  void stopTest() {
+    _testTimer?.cancel();
+    isTesting.value = false;
+    _pocSafey.disconnectDevice();
+
+    Get.snackbar(
+      'Test Completed',
+      'Test duration of 6 seconds reached',
+      backgroundColor: Colors.green,
+      colorText: Colors.white,
+    );
   }
 
   Future<void> updatePatientData() async {
@@ -275,6 +349,7 @@ class SpirometryController extends GetxController {
   @override
   void onClose() {
     // Clean up resources if needed
+    _testTimer?.cancel();
     super.onClose();
   }
 }
