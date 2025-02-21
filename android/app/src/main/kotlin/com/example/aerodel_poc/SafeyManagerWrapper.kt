@@ -154,21 +154,29 @@ class SafeyManagerWrapper(private val context: Context) :
 
     override fun enableTrial() {
         try {
+            if (!safeyLungManager.isConnected()) {
+                throw Exception("Device not connected")
+            }
             safeyLungManager.startTrial()
             Toast.makeText(context, "Trial started", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             println("Error starting trial: $e")
-            Toast.makeText(context, "Error starting trial", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Error starting trial: ${e.message}", Toast.LENGTH_SHORT).show()
+            channel.invokeMethod("onError", "Failed to start trial: ${e.message}")
         }
     }
 
     fun startTestSession() {
         try {
+            if (!safeyLungManager.isConnected()) {
+                throw Exception("Device not connected")
+            }
             Toast.makeText(context, "Trial session started", Toast.LENGTH_SHORT).show()
             safeyLungManager.startTestSession(null)
         } catch (e: Exception) {
             println("Error starting test session: $e")
-            Toast.makeText(context, "Error starting test session", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Error starting test session: ${e.message}", Toast.LENGTH_SHORT).show()
+            channel.invokeMethod("onError", "Failed to start test session: ${e.message}")
         }
     }
 
@@ -218,7 +226,7 @@ class SafeyManagerWrapper(private val context: Context) :
                         writer.write("Trial $trialNumber:\n")
                         
                         // Calculate key metrics from flow array
- val flowArray = trial.flowArray
+                        val flowArray = trial.flowArray
                         if (flowArray != null && flowArray.isNotEmpty()) {
                             val maxFlow = flowArray.maxOf { it }
                             val avgFlow = flowArray.sum() / flowArray.size
@@ -278,9 +286,9 @@ class SafeyManagerWrapper(private val context: Context) :
                 "flow" to latestFlow,
                 "volume" to latestVolume,
                 "time" to latestTime,
-                "flowArray" to ArrayList(flow),
-                "volumeArray" to ArrayList(volume),
-                "timeArray" to ArrayList(time)
+                "flowArray" to flow.toList(),
+                "volumeArray" to volume.toList(),
+                "timeArray" to time.toList()
             )
             
             channel.invokeMethod("onProgressUpdate", progressData)
@@ -323,6 +331,12 @@ class SafeyManagerWrapper(private val context: Context) :
             val device = discoveredDevices.firstOrNull()
             device?.let {
                 safeyLungManager.connectDevice(it)
+                // Add a delay to ensure connection is established
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    if (!safeyLungManager.isConnected()) {
+                        channel.invokeMethod("onError", "Connection failed. Please try again.")
+                    }
+                }, 3000) // 3 seconds delay
             } ?: run {
                 channel.invokeMethod("onError", "No device found to connect")
             }

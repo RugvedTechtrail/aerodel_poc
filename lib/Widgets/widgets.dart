@@ -1,4 +1,6 @@
 // patient_form.dart
+import 'dart:async';
+
 import 'package:aerodel_poc/controllers/spirometer_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -375,13 +377,52 @@ class DeviceControlPanel extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    ElevatedButton.icon(
+                    ElevatedButton(
                       onPressed: !controller.isConnected.value ||
                               controller.isTesting.value
                           ? null
-                          : () => controller.startTrial(),
-                      icon: const Icon(Icons.play_arrow),
-                      label: Text(controller.isTesting.value
+                          : () async {
+                              try {
+                                // Show loading indicator
+                                Get.dialog(
+                                  const Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                  barrierDismissible: false,
+                                );
+
+                                // Verify connection before starting
+                                final isStillConnected = await controller
+                                    .pocSafey
+                                    .getConnected()
+                                    .timeout(
+                                  const Duration(seconds: 5),
+                                  onTimeout: () {
+                                    Get.back(); // Remove loading indicator
+                                    throw TimeoutException(
+                                        'Connection check timed out');
+                                  },
+                                );
+
+                                if (!isStillConnected!) {
+                                  Get.back(); // Remove loading indicator
+                                  throw Exception('Connection lost');
+                                }
+
+                                await controller.startTrial();
+                                Get.back(); // Remove loading indicator
+                              } on TimeoutException {
+                                Get.back(); // Remove loading indicator
+                                controller.handleError(
+                                    'Connection timeout. Please reconnect the device.');
+                                controller.isConnected.value = false;
+                              } catch (e) {
+                                Get.back(); // Remove loading indicator
+                                controller
+                                    .handleError('Error starting test: $e');
+                              }
+                            },
+                      child: Text(controller.isTesting.value
                           ? 'Test in Progress...'
                           : 'Start Test'),
                     ),
@@ -458,14 +499,6 @@ class TestResultsPanel extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             // Add countdown timer display
-            if (controller.isTesting.value)
-              Text(
-                'Time remaining: ${controller.remainingTime.value}s',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue,
-                ),
-              ),
           ],
         ),
       ],
@@ -531,5 +564,87 @@ class TestResultsPanel extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class TestTimer extends StatelessWidget {
+  const TestTimer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = Get.find<SpirometryController>();
+
+    return Obx(() {
+      final seconds = controller.elapsedSeconds.value;
+      final isRunning = controller.isTimerRunning.value;
+      final isTesting = controller.isTesting.value;
+
+      return Column(
+        children: [
+          // Timer display
+          Container(
+            padding: const EdgeInsets.all(5),
+            decoration: BoxDecoration(
+              color: isRunning ? Colors.blue.shade100 : Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isRunning ? Colors.blue : Colors.grey,
+                width: 2,
+              ),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  '${seconds.toString().padLeft(2, '0')} seconds',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color:
+                        isRunning ? Colors.blue.shade900 : Colors.grey.shade700,
+                  ),
+                ),
+                if (seconds < 6 && isRunning)
+                  Text(
+                    'Minimum recommended time: 6 seconds',
+                    style: TextStyle(
+                      color: Colors.orange.shade800,
+                      fontSize: 12,
+                    ),
+                  ),
+                if (!isRunning && seconds >= 6)
+                  Text(
+                    'Test completed successfully!',
+                    style: TextStyle(
+                      color: Colors.green.shade800,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                if (!isRunning && seconds < 6 && seconds > 0)
+                  Text(
+                    'Test completed under recommended time',
+                    style: TextStyle(
+                      color: Colors.orange.shade800,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Information text
+          Text(
+            'You can continue the test beyond 6 seconds based on your capacity',
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 12,
+              fontStyle: FontStyle.italic,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      );
+    });
   }
 }

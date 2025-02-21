@@ -1,3 +1,4 @@
+import 'package:aerodel_poc/Widgets/widgets.dart';
 import 'package:aerodel_poc/controllers/spirometer_controller.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:flutter/material.dart';
@@ -46,16 +47,19 @@ class TestCharts extends StatelessWidget {
                     ),
                     const SizedBox(height: 24),
 
+                    // Add Timer Widget here
+                    const TestTimer(),
+                    const SizedBox(height: 24),
                     // Flow-Volume Loop Chart
                     SizedBox(
                       height: 300,
                       child: SfCartesianChart(
-                        primaryXAxis: NumericAxis(
+                        primaryXAxis: const NumericAxis(
                           title: AxisTitle(text: 'Volume (L)'),
                           minimum: 0,
                           maximum: 6,
                         ),
-                        primaryYAxis: NumericAxis(
+                        primaryYAxis: const NumericAxis(
                           title: AxisTitle(text: 'Flow (L/s)'),
                           minimum: 0,
                           maximum: 12,

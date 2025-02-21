@@ -13,10 +13,7 @@ class FlowVolumePoint {
 }
 
 class SpirometryController extends GetxController {
-  final PocSafey _pocSafey = PocSafey();
-  Timer? _testTimer;
-  static const int testDurationInSeconds = 6;
-  final RxInt remainingTime = testDurationInSeconds.obs;
+  final pocSafey = PocSafey();
 
   // Connection states
   final RxBool isConnected = false.obs;
@@ -50,6 +47,10 @@ class SpirometryController extends GetxController {
   final RxInt height = 0.obs;
   final RxInt weight = 0.obs;
 
+  final RxInt elapsedSeconds = 0.obs;
+  final RxBool isTimerRunning = false.obs;
+  Timer? _timer;
+
   @override
   void onInit() {
     super.onInit();
@@ -59,7 +60,7 @@ class SpirometryController extends GetxController {
 
   Future<void> initializeConnection() async {
     try {
-      final connected = await _pocSafey.getConnected();
+      final connected = await pocSafey.getConnected(); // Changed from _pocSafey
       isConnected.value = connected ?? false;
     } catch (e) {
       handleError('Failed to initialize connection: $e');
@@ -67,11 +68,11 @@ class SpirometryController extends GetxController {
   }
 
   void setupListeners() {
-    _pocSafey.onDeviceDiscovered = (device) {
+    pocSafey.onDeviceDiscovered = (device) {
       devices.add(device);
     };
 
-    _pocSafey.onProgressUpdate = (progressData) {
+    pocSafey.onProgressUpdate = (progressData) {
       try {
         currentProgress.value = progressData['progress'] as double;
         currentFlow.value = progressData['flow'] as double;
@@ -115,14 +116,15 @@ class SpirometryController extends GetxController {
       }
     };
 
-    _pocSafey.onError = (error) {
+    pocSafey.onError = (error) {
       handleError(error);
     };
 
-    _pocSafey.onTestFileGenerated = (String filePath) {
+    pocSafey.onTestFileGenerated = (String filePath) {
       lastGeneratedFilePath.value = filePath;
       isTestCompleted.value = true;
       isTesting.value = false;
+      stopTimer(); // Stop the timer when test is completed NEW
 
       Get.snackbar(
         'Test Completed',
@@ -138,45 +140,33 @@ class SpirometryController extends GetxController {
     };
   }
 
-  // Future requestPermissions() async {
-  //   final permissions = [
-  //     Permission.bluetooth,
-  //     Permission.bluetoothConnect,
-  //     Permission.bluetoothScan,
-  //     Permission.location,
-  //     Permission.storage,
-  //     Permission.manageExternalStorage,
-  //   ];
+  Future<bool> requestPermissions() async {
+    final permissions = [
+      Permission.bluetooth,
+      Permission.bluetoothConnect,
+      Permission.bluetoothScan,
+      Permission.location,
+      Permission.storage,
+      Permission.manageExternalStorage,
+    ];
 
-  //   Map<Permission, PermissionStatus> statuses = await permissions.request();
-
-  //   // Specifically check storage permission
-  //   if (statuses[Permission.storage]!.isDenied) {
-  //     // Show app settings if permission is permanently denied
-  //     if (await Permission.storage.isPermanentlyDenied) {
-  //       await openAppSettings();
-  //     } else {
-  //       // Request permission again
-  //       await Permission.storage.request();
-  //     }
-  //   }
-
-  //   if (statuses[Permission.manageExternalStorage]!.isDenied) {
-  //     if (await Permission.manageExternalStorage.isPermanentlyDenied) {
-  //       await openAppSettings();
-  //     } else {
-  //       await Permission.manageExternalStorage.request();
-  //     }
-  //   }
-  // }
+    for (final permission in permissions) {
+      final status = await permission.request();
+      if (status.isDenied || status.isPermanentlyDenied) {
+        handleError('Permission denied: ${permission.toString()}');
+        return false;
+      }
+    }
+    return true;
+  }
 
   Future<void> scanDevices() async {
     try {
-      // if (!await requestPermissions()) return;
+      if (!await requestPermissions()) return;
 
       isScanning.value = true;
       devices.clear();
-      await _pocSafey.scanDevices();
+      await pocSafey.scanDevices();
     } catch (e) {
       handleError('Failed to scan devices: $e');
     } finally {
@@ -186,7 +176,7 @@ class SpirometryController extends GetxController {
 
   Future<void> connectDevice() async {
     try {
-      await _pocSafey.connectDevice();
+      await pocSafey.connectDevice();
       isConnected.value = true;
       Get.snackbar(
         'Success',
@@ -199,36 +189,9 @@ class SpirometryController extends GetxController {
     }
   }
 
-  // Future<void> disconnectDevice() async {
-  //   try {
-  //     await _pocSafey.disconnectDevice();
-  //     isConnected.value = false;
-  //     isTesting.value = false;
-  //     isTestCompleted.value = false;
-
-  //     // Reset all test values
-  //     currentProgress.value = 0.0;
-  //     currentFlow.value = 0.0;
-  //     currentVolume.value = 0.0;
-  //     currentTime.value = 0.0;
-  //     flowArray.clear();
-  //     volumeArray.clear();
-  //     timeArray.clear();
-
-  //     Get.snackbar(
-  //       'Success',
-  //       'Device disconnected successfully',
-  //       backgroundColor: Colors.blue,
-  //       colorText: Colors.white,
-  //     );
-  //   } catch (e) {
-  //     handleError('Failed to disconnect device: $e');
-  //   }
-  // }
   Future<void> disconnectDevice() async {
     try {
-      _testTimer?.cancel(); // Cancel timer if active
-      await _pocSafey.disconnectDevice();
+      await pocSafey.disconnectDevice();
       isConnected.value = false;
       isTesting.value = false;
       isTestCompleted.value = false;
@@ -238,7 +201,6 @@ class SpirometryController extends GetxController {
       currentFlow.value = 0.0;
       currentVolume.value = 0.0;
       currentTime.value = 0.0;
-      remainingTime.value = testDurationInSeconds;
       flowArray.clear();
       volumeArray.clear();
       timeArray.clear();
@@ -254,69 +216,61 @@ class SpirometryController extends GetxController {
     }
   }
 
-  // Future<void> startTrial() async {
-  //   try {
-  //     if (!isConnected.value) {
-  //       throw Exception('Please connect to a device first');
-  //     }
-  //     isTesting.value = true;
-  //     isTestCompleted.value = false;
-  //     await _pocSafey.startTrial();
-  //   } catch (e) {
-  //     handleError('Failed to start trial: $e');
-  //     isTesting.value = false;
-  //   }
-  // }
   Future<void> startTrial() async {
     try {
       if (!isConnected.value) {
         throw Exception('Please connect to a device first');
       }
 
-      // Reset and start timer
-      remainingTime.value = testDurationInSeconds;
+      // Add timeout to connection check
+      final isStillConnected = await pocSafey.getConnected().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          throw TimeoutException('Connection check timed out');
+        },
+      );
+
+      if (isStillConnected != true) {
+        throw Exception('Device is not connected');
+      }
+
       isTesting.value = true;
       isTestCompleted.value = false;
-
-      await _pocSafey.startTrial();
-
-      // Start countdown timer
-      _testTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        remainingTime.value--;
-
-        if (remainingTime.value <= 0) {
-          stopTest();
-          timer.cancel();
-        }
-      });
+      startTimer(); //NEW
+      await pocSafey.startTrial();
+    } on TimeoutException {
+      handleError('Connection timeout. Please reconnect the device.');
+      isTesting.value = false;
+      isConnected.value = false;
     } catch (e) {
       handleError('Failed to start trial: $e');
       isTesting.value = false;
+      stopTimer(); //NEW
     }
   }
 
-  // Add method to stop the test
-  void stopTest() {
-    _testTimer?.cancel();
-    isTesting.value = false;
-    _pocSafey.disconnectDevice();
+  void startTimer() {
+    elapsedSeconds.value = 0;
+    isTimerRunning.value = true;
+    _timer?.cancel(); // Cancel any existing timer
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      elapsedSeconds.value++;
+    });
+  }
 
-    Get.snackbar(
-      'Test Completed',
-      'Test duration of 6 seconds reached',
-      backgroundColor: Colors.green,
-      colorText: Colors.white,
-    );
+  void stopTimer() {
+    _timer?.cancel();
+    isTimerRunning.value = false;
   }
 
   Future<void> updatePatientData() async {
     try {
-      await _pocSafey.setFirstName(firstName.value);
-      await _pocSafey.setLastName(lastName.value);
-      await _pocSafey.setGender(gender.value);
-      await _pocSafey.setDateOfBirth(dateOfBirth.value);
-      await _pocSafey.setHeight(height.value.toString());
-      await _pocSafey.setWeight(weight.value.toString());
+      await pocSafey.setFirstName(firstName.value);
+      await pocSafey.setLastName(lastName.value);
+      await pocSafey.setGender(gender.value);
+      await pocSafey.setDateOfBirth(dateOfBirth.value);
+      await pocSafey.setHeight(height.value.toString());
+      await pocSafey.setWeight(weight.value.toString());
 
       Get.snackbar(
         'Success',
@@ -360,8 +314,8 @@ class SpirometryController extends GetxController {
 
   @override
   void onClose() {
+    _timer?.cancel();
     // Clean up resources if needed
-    _testTimer?.cancel();
     super.onClose();
   }
 }
