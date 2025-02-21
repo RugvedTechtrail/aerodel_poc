@@ -14,7 +14,7 @@ class TestCharts extends StatelessWidget {
     return Card(
       elevation: 2,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(5),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -52,7 +52,7 @@ class TestCharts extends StatelessWidget {
                     const SizedBox(height: 24),
                     // Flow-Volume Loop Chart
                     SizedBox(
-                      height: 300,
+                      height: 320,
                       child: SfCartesianChart(
                         primaryXAxis: const NumericAxis(
                           title: AxisTitle(text: 'Volume (L)'),
@@ -100,7 +100,7 @@ class TestCharts extends StatelessWidget {
                     // Test Statistics
                     Card(
                       child: Padding(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(5),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [

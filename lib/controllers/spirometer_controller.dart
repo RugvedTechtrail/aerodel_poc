@@ -162,7 +162,7 @@ class SpirometryController extends GetxController {
 
   Future<void> scanDevices() async {
     try {
-      if (!await requestPermissions()) return;
+      // if (!await requestPermissions()) return;
 
       isScanning.value = true;
       devices.clear();

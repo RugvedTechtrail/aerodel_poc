@@ -1,5 +1,6 @@
 // patient_form.dart
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:aerodel_poc/controllers/spirometer_controller.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class PatientForm extends StatefulWidget {
   const PatientForm({super.key});
@@ -129,7 +131,7 @@ class _PatientFormState extends State<PatientForm> {
     return Card(
       elevation: 2,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(8),
         child: Form(
           key: _formKey,
           child: Column(
@@ -137,7 +139,7 @@ class _PatientFormState extends State<PatientForm> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.person_outline, size: 24),
+                  const Icon(Icons.person_outline, size: 20),
                   const SizedBox(width: 8),
                   Text(
                     'Patient Information',
@@ -145,7 +147,7 @@ class _PatientFormState extends State<PatientForm> {
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
               // First Name and Last Name
               Row(
@@ -163,7 +165,7 @@ class _PatientFormState extends State<PatientForm> {
                       onChanged: (value) => controller.firstName.value = value,
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: TextFormField(
                       controller: _lastNameController,
@@ -179,7 +181,7 @@ class _PatientFormState extends State<PatientForm> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
 
               // Gender and DOB
               Row(
@@ -209,7 +211,7 @@ class _PatientFormState extends State<PatientForm> {
                       },
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: TextFormField(
                       controller: _dobController,
@@ -227,7 +229,7 @@ class _PatientFormState extends State<PatientForm> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
 
               // Height and Weight
               Row(
@@ -251,7 +253,7 @@ class _PatientFormState extends State<PatientForm> {
                       },
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: TextFormField(
                       controller: _weightController,
@@ -273,7 +275,7 @@ class _PatientFormState extends State<PatientForm> {
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 18),
 
               // Save Button
               ElevatedButton.icon(
@@ -314,7 +316,7 @@ class DeviceControlPanel extends StatelessWidget {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -360,7 +362,7 @@ class DeviceControlPanel extends StatelessWidget {
                                 : 'Scan Devices'),
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 5),
                         Expanded(
                           child: ElevatedButton.icon(
                             onPressed: controller.isConnected.value
@@ -383,14 +385,6 @@ class DeviceControlPanel extends StatelessWidget {
                           ? null
                           : () async {
                               try {
-                                // Show loading indicator
-                                Get.dialog(
-                                  const Center(
-                                    child: CircularProgressIndicator(),
-                                  ),
-                                  barrierDismissible: false,
-                                );
-
                                 // Verify connection before starting
                                 final isStillConnected = await controller
                                     .pocSafey
@@ -418,6 +412,7 @@ class DeviceControlPanel extends StatelessWidget {
                                 controller.isConnected.value = false;
                               } catch (e) {
                                 Get.back(); // Remove loading indicator
+                                log('start test errro is ${e.toString()}');
                                 controller
                                     .handleError('Error starting test: $e');
                               }
@@ -510,9 +505,9 @@ class TestResultsPanel extends StatelessWidget {
       crossAxisCount: 3,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 10,
-      crossAxisSpacing: 10,
-      childAspectRatio: 1.0,
+      mainAxisSpacing: 5,
+      crossAxisSpacing: 3,
+      childAspectRatio: 0.8,
       children: [
         _buildResultCard(
           'Flow',
@@ -595,9 +590,9 @@ class TestTimer extends StatelessWidget {
             child: Column(
               children: [
                 Text(
-                  '${seconds.toString().padLeft(2, '0')} seconds',
+                  'Time taken : ${seconds.toString().padLeft(2, '0')} seconds',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color:
                         isRunning ? Colors.blue.shade900 : Colors.grey.shade700,

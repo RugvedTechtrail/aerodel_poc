@@ -19,7 +19,7 @@ class HomeScreen extends StatelessWidget {
             children: [
               const Text('Spirometry Test'),
               Obx(() => Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(5),
                     child: Row(
                       children: [
                         Icon(
