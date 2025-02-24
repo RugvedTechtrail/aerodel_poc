@@ -176,14 +176,23 @@ class SpirometryController extends GetxController {
 
   Future<void> connectDevice() async {
     try {
-      await pocSafey.connectDevice();
-      isConnected.value = true;
-      Get.snackbar(
-        'Success',
-        'Device connected successfully',
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-      );
+      if (devices.isNotEmpty) {
+        await pocSafey.connectDevice();
+        isConnected.value = true;
+        Get.snackbar(
+          'Success',
+          'Device connected successfully',
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+      } else {
+        Get.snackbar(
+          'Alert',
+          'No device available to connect',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+      }
     } catch (e) {
       handleError('Failed to connect device: $e');
     }
