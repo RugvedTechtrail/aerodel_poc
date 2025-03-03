@@ -351,17 +351,34 @@ class DeviceControlPanel extends StatelessWidget {
                     // Control Buttons
                     Row(
                       children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: controller.isScanning.value
-                                ? null
-                                : () => controller.scanDevices(),
-                            icon: const Icon(Icons.search),
-                            label: Text(controller.isScanning.value
-                                ? 'Scanning...'
-                                : 'Scan Devices'),
-                          ),
-                        ),
+                        !controller.isLoading.value
+                            ? Expanded(
+                                child: ElevatedButton.icon(
+                                onPressed: controller.isScanning.value
+                                    ? null
+                                    : () => !controller.isConnected.value
+                                        ? controller.scanDevices()
+                                        : Get.snackbar(
+                                            'User Alert!',
+                                            "Device is already connected, Please start the test",
+                                            backgroundColor: Colors.green,
+                                            colorText: Colors.white,
+                                            duration:
+                                                const Duration(seconds: 5),
+                                            snackPosition: SnackPosition.BOTTOM,
+                                          ),
+                                icon: const Icon(Icons.search),
+                                label: Text(controller.isScanning.value
+                                    ? 'Scanning...'
+                                    : 'Scan Devices'),
+                              ))
+                            : const Padding(
+                                padding: EdgeInsets.only(left: 15),
+                                child: SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator()),
+                              ),
                         const SizedBox(width: 5),
                         Expanded(
                           child: ElevatedButton.icon(
@@ -429,8 +446,8 @@ class DeviceControlPanel extends StatelessWidget {
                                 onPressed: () async {
                                   await controller.stopTrial();
                                 },
-                                child: Text('Stop Trial'))
-                            : SizedBox(),
+                                child: const Text('Stop Trial'))
+                            : const SizedBox(),
                         ElevatedButton(
                           onPressed: !controller.isConnected.value ||
                                   controller.isTesting.value
@@ -555,6 +572,7 @@ class TestResultsPanel extends StatelessWidget {
   }
 
   Widget _buildResultsGrid(SpirometryController controller) {
+    final seconds = controller.elapsedSeconds.value;
     return GridView.count(
       crossAxisCount: 3,
       shrinkWrap: true,
@@ -573,11 +591,17 @@ class TestResultsPanel extends StatelessWidget {
           '${controller.currentVolume.value.toStringAsFixed(2)} L',
           Icons.height,
         ),
-        _buildResultCard(
-          'Time',
-          '${controller.currentTime.value.toStringAsFixed(2)} s',
-          Icons.timer,
-        ),
+        controller.currentTime.value != 0.0
+            ? _buildResultCard(
+                'Time',
+                '${controller.currentTime.value.toStringAsFixed(2)} s',
+                Icons.timer,
+              )
+            : _buildResultCard(
+                'Time',
+                '${seconds} s',
+                Icons.timer,
+              ),
       ],
     );
   }
@@ -686,7 +710,7 @@ class TestTimer extends StatelessWidget {
           Text(
             'You can continue the test beyond 6 seconds based on your capacity',
             style: TextStyle(
-              color: Colors.grey.shade600,
+              color: Colors.grey.shade500,
               fontSize: 12,
               fontStyle: FontStyle.italic,
             ),

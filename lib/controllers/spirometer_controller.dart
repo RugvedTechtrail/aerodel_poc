@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 
+import 'package:aerodel_poc/Widgets/chartReport.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -14,6 +15,8 @@ class FlowVolumePoint {
 }
 
 class SpirometryController extends GetxController {
+  final reportGenerator =
+      ReportGenerator(); // Create an instance of ReportGenerator
   final pocSafey = PocSafey();
   final RxString batteryStatus = ''.obs;
   // Connection states
@@ -21,6 +24,7 @@ class SpirometryController extends GetxController {
   final RxBool isScanning = false.obs;
   final RxBool isTesting = false.obs;
   final RxList devices = [].obs;
+  RxBool isLoading = false.obs;
 
   // Test progress values
   final RxDouble currentProgress = 0.0.obs;
@@ -39,6 +43,7 @@ class SpirometryController extends GetxController {
   final RxDouble fev1 = 0.0.obs;
   final RxString lastGeneratedFilePath = ''.obs;
   final RxBool isTestCompleted = false.obs;
+  final RxString lastGeneratedPdfPath = ''.obs;
 
   // Patient data
   final RxString firstName = ''.obs;
@@ -71,6 +76,75 @@ class SpirometryController extends GetxController {
     }
   }
 
+  // void setupListeners() {
+  //   pocSafey.onDeviceDiscovered = (device) {
+  //     devices.add(device);
+  //   };
+  //   pocSafey.onProgressUpdate = (progressData) {
+  //     try {
+  //       log('progress data is $progressData');
+  //       currentProgress.value = progressData['progress'] as double;
+  //       currentFlow.value = progressData['flow'] as double;
+  //       currentVolume.value = progressData['volume'] as double;
+  //       currentTime.value = progressData['time'] as double;
+  //       // Update arrays safely
+  //       if (progressData['flowArray'] != null) {
+  //         flowArray.value =
+  //             List<double>.from(progressData['flowArray'] as List);
+  //       }
+  //       if (progressData['volumeArray'] != null) {
+  //         volumeArray.value =
+  //             List<double>.from(progressData['volumeArray'] as List);
+  //       }
+  //       if (progressData['timeArray'] != null) {
+  //         timeArray.value =
+  //             List<double>.from(progressData['timeArray'] as List);
+  //       }
+  //       // Calculate peak flow
+  //       if (flowArray.isNotEmpty) {
+  //         peakFlow.value =
+  //             flowArray.reduce((curr, next) => curr > next ? curr : next);
+  //       }
+  //       // Update FVC (last volume reading)
+  //       if (volumeArray.isNotEmpty) {
+  //         fvc.value = volumeArray.last;
+  //       }
+  //       // Calculate FEV1 (volume at 1 second)
+  //       if (timeArray.isNotEmpty && volumeArray.isNotEmpty) {
+  //         final oneSecondIndex = timeArray.indexWhere((time) => time >= 1.0);
+  //         if (oneSecondIndex != -1) {
+  //           fev1.value = volumeArray[oneSecondIndex];
+  //         }
+  //       }
+  //     } catch (e) {
+  //       log('Error processing progress update: $e');
+  //     }
+  //   };
+  //   pocSafey.onError = (error) {
+  //     handleError(error);
+  //   };
+  //   pocSafey.onTestFileGenerated = (String filePath) {
+  //     lastGeneratedFilePath.value = filePath;
+  //     isTestCompleted.value = true;
+  //     isTesting.value = false;
+  //     stopTimer(); // Stop the timer when test is completed NEW
+  //     Get.snackbar(
+  //       'Test Completed',
+  //       'Results saved successfully',
+  //       mainButton: TextButton(
+  //         onPressed: () => openTestFile(),
+  //         child: const Text('Open File', style: TextStyle(color: Colors.white)),
+  //       ),
+  //       duration: const Duration(seconds: 5),
+  //       backgroundColor: Colors.green,
+  //       colorText: Colors.white,
+  //     );
+  //   };
+  //   // pocSafey.onBatteryStatusChanged = (status) {
+  //   //   log('Battery status received: $status');
+  //   //   batteryStatus.value = status;
+  //   // };
+  // }
   void setupListeners() {
     pocSafey.onDeviceDiscovered = (device) {
       devices.add(device);
@@ -78,6 +152,7 @@ class SpirometryController extends GetxController {
 
     pocSafey.onProgressUpdate = (progressData) {
       try {
+        // log('progress data is $progressData');
         currentProgress.value = progressData['progress'] as double;
         currentFlow.value = progressData['flow'] as double;
         currentVolume.value = progressData['volume'] as double;
@@ -121,31 +196,158 @@ class SpirometryController extends GetxController {
     };
 
     pocSafey.onError = (error) {
+      log('pocSafey error in setplistenr is $error');
       handleError(error);
     };
 
-    pocSafey.onTestFileGenerated = (String filePath) {
+    pocSafey.onTestFileGenerated = (String filePath) async {
       lastGeneratedFilePath.value = filePath;
+
+      // Generate our custom text report and PDF report with chart
+      try {
+        // First generate text report
+        final textFilePath = await reportGenerator.generateTextReport(
+          firstName: firstName.value != '' ? firstName.value : "John",
+          lastName: lastName.value != '' ? lastName.value : "Doe",
+          gender: gender.value != '' ? gender.value : "M",
+          dateOfBirth:
+              dateOfBirth.value != '' ? dateOfBirth.value : "1-01-2001",
+          height:
+              height.value.toString() != "0" ? height.value.toString() : "180",
+          weight:
+              weight.value.toString() != '0' ? weight.value.toString() : '80',
+          peakFlow: peakFlow.value,
+          fvc: fvc.value,
+          fev1: fev1.value,
+          flowArray: flowArray,
+          volumeArray: volumeArray,
+          timeArray: timeArray,
+        );
+
+        lastGeneratedFilePath.value = textFilePath;
+        log('Generated text report at: $textFilePath');
+
+        // Then get the chart image and generate PDF
+        // We'll do this after a brief delay to ensure the chart is rendered
+        Future.delayed(const Duration(milliseconds: 500), () async {
+          final chartImage = await reportGenerator.captureChart();
+
+          if (chartImage != null) {
+            final pdfFilePath = await reportGenerator.generatePdfReport(
+              firstName: firstName.value != '' ? firstName.value : "John",
+              lastName: lastName.value != '' ? lastName.value : "Doe",
+              gender: gender.value != '' ? gender.value : "M",
+              dateOfBirth:
+                  dateOfBirth.value != '' ? dateOfBirth.value : "1-01-2001",
+              height: height.value.toString() != "0"
+                  ? height.value.toString()
+                  : "180",
+              weight: weight.value.toString() != '0'
+                  ? weight.value.toString()
+                  : '80',
+              peakFlow: peakFlow.value,
+              fvc: fvc.value,
+              fev1: fev1.value,
+              flowVolumePoints:
+                  getFlowVolumePoints().map((p) => p.flow).toList(),
+              chartImage: chartImage,
+            );
+
+            lastGeneratedPdfPath.value = pdfFilePath;
+            log('Generated PDF report at: $pdfFilePath');
+          } else {
+            log('Failed to capture chart image');
+          }
+        });
+      } catch (e) {
+        log('Error generating reports: $e');
+        handleError('Report generation error: $e');
+      }
+
       isTestCompleted.value = true;
       isTesting.value = false;
-      stopTimer(); // Stop the timer when test is completed NEW
+      stopTimer(); // Stop the timer when test is completed
 
       Get.snackbar(
         'Test Completed',
         'Results saved successfully',
         mainButton: TextButton(
-          onPressed: () => openTestFile(),
-          child: const Text('Open File', style: TextStyle(color: Colors.white)),
+          onPressed: () => showReportOptions(),
+          child:
+              const Text('View Reports', style: TextStyle(color: Colors.white)),
         ),
         duration: const Duration(seconds: 5),
         backgroundColor: Colors.green,
         colorText: Colors.white,
       );
     };
-    // pocSafey.onBatteryStatusChanged = (status) {
-    //   log('Battery status received: $status');
-    //   batteryStatus.value = status;
-    // };
+
+    pocSafey.onBatteryStatusChanged = (status) {
+      log('Battery status received: $status');
+      batteryStatus.value = status;
+    };
+  }
+
+  void showReportOptions() {
+    Get.dialog(
+      AlertDialog(
+        title: const Text('Test Reports'),
+        content: const Text('Which report would you like to open?'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Get.back();
+              openTextReport();
+            },
+            child: const Text('Text Report'),
+          ),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              openPdfReport();
+            },
+            child: const Text('PDF Report with Chart'),
+          ),
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Open the text report
+  void openTextReport() {
+    if (lastGeneratedFilePath.value.isNotEmpty) {
+      OpenFile.open(lastGeneratedFilePath.value).then((result) {
+        log('Text file open result: ${result.message}');
+        if (result.type != ResultType.done) {
+          handleError('Failed to open text file: ${result.message}');
+        }
+      });
+    } else {
+      handleError('No text report available');
+    }
+  }
+
+  // Open the PDF report
+  void openPdfReport() {
+    if (lastGeneratedPdfPath.value.isNotEmpty) {
+      OpenFile.open(lastGeneratedPdfPath.value).then((result) {
+        log('PDF file open result: ${result.message}');
+        if (result.type != ResultType.done) {
+          handleError('Failed to open PDF file: ${result.message}');
+        }
+      });
+    } else {
+      handleError('No PDF report available');
+    }
+  }
+
+  // For backward compatibility
+  void openTestFile() {
+    showReportOptions();
   }
 
   Future<bool> requestPermissions() async {
@@ -171,14 +373,17 @@ class SpirometryController extends GetxController {
   Future<void> scanDevices() async {
     try {
       // if (!await requestPermissions()) return;
-
+      isLoading.value = true;
       isScanning.value = true;
       devices.clear();
+
       await pocSafey.scanDevices();
     } catch (e) {
       handleError('Failed to scan devices: $e');
     } finally {
+      isLoading.value = false;
       isScanning.value = false;
+      // update();
       log('lengh on device in scan is ${devices.length}');
     }
   }
@@ -189,9 +394,9 @@ class SpirometryController extends GetxController {
         await pocSafey.connectDevice();
         isConnected.value = true;
         pocSafey.onBatteryStatusChanged = (status) {
-          log('Battery status received: $status');
           batteryStatus.value = status;
         };
+        log('Battery status received: ${batteryStatus.value}');
         Get.snackbar(
           'Success',
           'Device connected successfully',
@@ -270,9 +475,9 @@ class SpirometryController extends GetxController {
       log('lengh on device in strt trial is ${devices.length}');
     } catch (e) {
       handleError('Failed to start trial: $e');
+      stopTimer();
       isTesting.value = false;
       log('lengh on device in strt trial is ${devices.length}');
-      stopTimer(); //NEW
     }
   }
 
@@ -327,15 +532,18 @@ class SpirometryController extends GetxController {
     }
   }
 
-  void openTestFile() {
-    if (lastGeneratedFilePath.value.isNotEmpty) {
-      OpenFile.open(lastGeneratedFilePath.value).then((result) {
-        if (result.type != ResultType.done) {
-          handleError('Failed to open file: ${result.message}');
-        }
-      });
-    }
-  }
+  // void openTestFile() {
+  //   if (lastGeneratedFilePath.value.isNotEmpty) {
+  //     OpenFile.open(lastGeneratedFilePath.value).then((result) {
+  //       log('test result is ${result.message}');
+  //       //log('test result is ${result.}');
+
+  //       if (result.type != ResultType.done) {
+  //         handleError('Failed to open file: ${result.message}');
+  //       }
+  //     });
+  //   }
+  // }
 
   List<FlowVolumePoint> getFlowVolumePoints() {
     final points = <FlowVolumePoint>[];
@@ -346,6 +554,8 @@ class SpirometryController extends GetxController {
   }
 
   void handleError(String message) {
+    stopTimer();
+    stopTrial();
     Get.snackbar(
       'User Alert',
       message,

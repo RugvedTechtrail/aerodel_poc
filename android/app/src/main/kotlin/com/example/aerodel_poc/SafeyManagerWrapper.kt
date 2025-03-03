@@ -163,10 +163,11 @@ class SafeyManagerWrapper(private val context: Context) :
                 throw Exception("Device not connected")
             }
             safeyLungManager.startTrial()
-            Toast.makeText(context, "Trial started", Toast.LENGTH_SHORT).show()
+             println(" starting trial")
+            // Toast.makeText(context, "Trial started", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             println("Error starting trial: $e")
-            Toast.makeText(context, "Error starting trial: ${e.message}", Toast.LENGTH_SHORT).show()
+            // Toast.makeText(context, "Error starting trial: ${e.message}", Toast.LENGTH_SHORT).show()
             channel.invokeMethod("onError", "Failed to start trial: ${e.message}")
         }
     }
@@ -176,22 +177,22 @@ class SafeyManagerWrapper(private val context: Context) :
             if (!safeyLungManager.isConnected()) {
                 throw Exception("Device not connected")
             }
-            Toast.makeText(context, "Trial session started", Toast.LENGTH_SHORT).show()
+            //Toast.makeText(context, "Trial session started", Toast.LENGTH_SHORT).show()
             safeyLungManager.startTestSession(null)
         } catch (e: Exception) {
             println("Error starting test session: $e")
-            Toast.makeText(context, "Error starting test session: ${e.message}", Toast.LENGTH_SHORT).show()
+            //Toast.makeText(context, "Error starting test session: ${e.message}", Toast.LENGTH_SHORT).show()
             channel.invokeMethod("onError", "Failed to start test session: ${e.message}")
         }
     }
 
     override fun getTestResult(testResult: TestResultsModel, trialCount: Int) {
-        println("Test result: $testResult, trial count: $trialCount")
+        //println("Test result: $testResult, trial count: $trialCount")
         testResultsModel = testResult
     }
 
     override fun getTestResults(testResult: TestResultsModel) {
-        println("Test results: $testResult")
+        //println("Test results: $testResult")
         testResultsModel = testResult
 
         val externalDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
@@ -257,7 +258,7 @@ class SafeyManagerWrapper(private val context: Context) :
             }
             
             println("File written to: $filePath")
-            Toast.makeText(context, "File created at $filePath", Toast.LENGTH_SHORT).show()
+            //Toast.makeText(context, "File created at $filePath", Toast.LENGTH_SHORT).show()
             channel.invokeMethod("onTestFileGenerated", filePath)
 
         } catch (e: Exception) {
@@ -285,7 +286,7 @@ class SafeyManagerWrapper(private val context: Context) :
             val latestFlow = flow.lastOrNull() ?: 0.0
             val latestVolume = volume.lastOrNull() ?: 0.0
             val latestTime = time.lastOrNull() ?: 0.0
-
+            println("time taken by test is : $time.toList")
             val progressData = mapOf(
                 "progress" to progress,
                 "flow" to latestFlow,
@@ -305,7 +306,7 @@ class SafeyManagerWrapper(private val context: Context) :
     override fun testCompleted() {
         println("Test completed")
         try {
-            Toast.makeText(context, "Test completed", Toast.LENGTH_SHORT).show()
+            //Toast.makeText(context, "Test completed", Toast.LENGTH_SHORT).show()
             channel.invokeMethod("onTestCompleted", null)
         } catch (e: Exception) {
             println("Error sending test completion: $e")
@@ -363,7 +364,7 @@ class SafeyManagerWrapper(private val context: Context) :
     fun setFirstName(firstName: String?) {
         this.firstName = firstName ?: this.firstName
         println("First Name: $firstName")
-        Toast.makeText(context, "First name set: $firstName", Toast.LENGTH_SHORT).show()
+        //Toast.makeText(context, "First name set: $firstName", Toast.LENGTH_SHORT).show()
     }
 
     fun setLastName(lastName: String?) {
@@ -379,7 +380,7 @@ class SafeyManagerWrapper(private val context: Context) :
             else -> this.gender
         }
         println("Gender: $gender")
-        Toast.makeText(context, "Gender set: $gender", Toast.LENGTH_SHORT).show()
+        //Toast.makeText(context, "Gender set: $gender", Toast.LENGTH_SHORT).show()
     }
 
     fun setDateOfBirth(year: Int?, month: Int?, day: Int?) {
@@ -387,18 +388,18 @@ class SafeyManagerWrapper(private val context: Context) :
             this.dateOfBirth = Date(year - 1900, month - 1, day)
         }
         println("Date of Birth: $year-$month-$day")
-        Toast.makeText(context, "Date of birth set: $year-$month-$day", Toast.LENGTH_SHORT).show()
+        //Toast.makeText(context, "Date of birth set: $year-$month-$day", Toast.LENGTH_SHORT).show()
     }
 
     fun setHeight(height: Int?) {
         this.heightInCentimeters = height ?: this.heightInCentimeters
         println("Height: $height cm")
-        Toast.makeText(context, "Height set: $height", Toast.LENGTH_SHORT).show()
+        //Toast.makeText(context, "Height set: $height", Toast.LENGTH_SHORT).show()
     }
 
     fun setWeight(weight: Int?) {
         this.weightInKg = weight?.toDouble() ?: this.weightInKg
         println("Weight: $weight kg")
-        Toast.makeText(context, "Weight set: $weight", Toast.LENGTH_SHORT).show()
+       //Toast.makeText(context, "Weight set: $weight", Toast.LENGTH_SHORT).show()
     }
 }
