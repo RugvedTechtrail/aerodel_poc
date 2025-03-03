@@ -25,6 +25,10 @@ class PocSafey extends BackgroundChannelPocSafey {
     return PocSafeyPlatform.instance.startTrial();
   }
 
+  Future<void> stopTrial() {
+    return PocSafeyPlatform.instance.stopTrial();
+  }
+
   Future<void> setFirstName(String firstName) {
     return PocSafeyPlatform.instance.setFirstName(firstName);
   }
@@ -52,6 +56,9 @@ class PocSafey extends BackgroundChannelPocSafey {
   Future<void> setWeight(String weight) {
     return PocSafeyPlatform.instance.setWeight(int.parse(weight));
   }
+
+  @override
+  late Function(String batteryStatus) onBatteryStatusChanged;
 
   @override
   late Function(String filePath) onTestFileGenerated; // Add this line

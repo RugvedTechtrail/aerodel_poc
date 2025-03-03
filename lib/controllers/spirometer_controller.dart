@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -14,7 +15,7 @@ class FlowVolumePoint {
 
 class SpirometryController extends GetxController {
   final pocSafey = PocSafey();
-
+  final RxString batteryStatus = ''.obs;
   // Connection states
   final RxBool isConnected = false.obs;
   final RxBool isScanning = false.obs;
@@ -54,12 +55,15 @@ class SpirometryController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+
+    log('batter statsu in init is ${batteryStatus.value}');
     initializeConnection();
     setupListeners();
   }
 
   Future<void> initializeConnection() async {
     try {
+      log('lengh on device in init is ${devices.length}');
       final connected = await pocSafey.getConnected(); // Changed from _pocSafey
       isConnected.value = connected ?? false;
     } catch (e) {
@@ -112,7 +116,7 @@ class SpirometryController extends GetxController {
           }
         }
       } catch (e) {
-        print('Error processing progress update: $e');
+        log('Error processing progress update: $e');
       }
     };
 
@@ -138,6 +142,10 @@ class SpirometryController extends GetxController {
         colorText: Colors.white,
       );
     };
+    // pocSafey.onBatteryStatusChanged = (status) {
+    //   log('Battery status received: $status');
+    //   batteryStatus.value = status;
+    // };
   }
 
   Future<bool> requestPermissions() async {
@@ -171,6 +179,7 @@ class SpirometryController extends GetxController {
       handleError('Failed to scan devices: $e');
     } finally {
       isScanning.value = false;
+      log('lengh on device in scan is ${devices.length}');
     }
   }
 
@@ -179,19 +188,25 @@ class SpirometryController extends GetxController {
       if (devices.isNotEmpty) {
         await pocSafey.connectDevice();
         isConnected.value = true;
+        pocSafey.onBatteryStatusChanged = (status) {
+          log('Battery status received: $status');
+          batteryStatus.value = status;
+        };
         Get.snackbar(
           'Success',
           'Device connected successfully',
           backgroundColor: Colors.green,
           colorText: Colors.white,
         );
+        log('lengh on device in connect is ${devices.length}');
       } else {
         Get.snackbar(
-          'Alert',
+          'User Alert',
           'No device available to connect',
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
+        log('lengh on device in connect is ${devices.length}');
       }
     } catch (e) {
       handleError('Failed to connect device: $e');
@@ -204,7 +219,7 @@ class SpirometryController extends GetxController {
       isConnected.value = false;
       isTesting.value = false;
       isTestCompleted.value = false;
-
+      batteryStatus.value = ''; // Clear battery status on disconnect
       // Reset all test values
       currentProgress.value = 0.0;
       currentFlow.value = 0.0;
@@ -247,14 +262,34 @@ class SpirometryController extends GetxController {
       isTestCompleted.value = false;
       startTimer(); //NEW
       await pocSafey.startTrial();
+      log('lengh on device in strt trial is ${devices.length}');
     } on TimeoutException {
       handleError('Connection timeout. Please reconnect the device.');
       isTesting.value = false;
       isConnected.value = false;
+      log('lengh on device in strt trial is ${devices.length}');
     } catch (e) {
       handleError('Failed to start trial: $e');
       isTesting.value = false;
+      log('lengh on device in strt trial is ${devices.length}');
       stopTimer(); //NEW
+    }
+  }
+
+  Future<void> stopTrial() async {
+    try {
+      if (!isTesting.value) {
+        return; // No need to stop if not testing
+      }
+
+      await pocSafey.stopTrial();
+      isTesting.value = false;
+      log('lengh on device in stop trial is ${devices.length}');
+      stopTimer(); // Stop the timer you started in startTrial
+    } catch (e) {
+      log('stop trial erro is $e');
+      log('lengh on device in stop trial is ${devices.length}');
+      handleError('Failed to stop trial: $e');
     }
   }
 
@@ -312,7 +347,7 @@ class SpirometryController extends GetxController {
 
   void handleError(String message) {
     Get.snackbar(
-      'Error',
+      'User Alert',
       message,
       backgroundColor: Colors.red,
       colorText: Colors.white,

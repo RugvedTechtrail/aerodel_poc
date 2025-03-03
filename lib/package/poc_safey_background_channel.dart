@@ -5,7 +5,7 @@ import 'poc_safey_background_interface.dart';
 class BackgroundChannelPocSafey extends PocSafeyBackgroundPlatform {
   @visibleForTesting
   final methodChannel = const MethodChannel('background_poc_safey');
-
+  late Function(String batteryStatus) onBatteryStatusChanged;
   BackgroundChannelPocSafey() {
     methodChannel.setMethodCallHandler(_handleMethod);
   }
@@ -28,6 +28,8 @@ class BackgroundChannelPocSafey extends PocSafeyBackgroundPlatform {
         return onProgressUpdate(Map<String, dynamic>.from(call.arguments));
       case 'onTestFileGenerated': // Add this case
         return onTestFileGenerated(call.arguments as String);
+      case 'onBatteryStatusChanged':
+        return onBatteryStatusChanged(call.arguments as String);
     }
   }
 }

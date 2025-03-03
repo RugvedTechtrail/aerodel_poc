@@ -100,7 +100,12 @@ class SafeyManagerWrapper(private val context: Context) :
 
     override fun getBatteryStatus(batteryStatus: String) {
         println("Battery status: $batteryStatus")
-    }
+        try {
+            channel.invokeMethod("onBatteryStatusChanged", batteryStatus)
+        } catch (e: Exception) {
+            println("Error sending battery status: $e")
+        }
+    }   
 
     override fun error(safeyDeviceManagerInfoState: SafeyDeviceManagerInfoState, message: String) {
         println("Error: $safeyDeviceManagerInfoState, $message")

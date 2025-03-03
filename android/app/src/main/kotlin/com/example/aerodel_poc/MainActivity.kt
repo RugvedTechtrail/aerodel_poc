@@ -36,6 +36,10 @@ class MainActivity: FlutterActivity() {
                     safeyManagerWrapper.enableTrial()
                     result.success(null)
                 }
+                "stopTrial" -> {
+                    safeyManagerWrapper.stopTest()
+                    result.success(null)
+                }
                 "setFirstName" -> {
                     val firstName = call.argument<String>("firstName")
                     safeyManagerWrapper.setFirstName(firstName)
@@ -67,6 +71,10 @@ class MainActivity: FlutterActivity() {
                     val weight = call.argument<Int>("weight")
                     safeyManagerWrapper.setWeight(weight)
                     result.success(null)
+                }
+                "getBatteryStatus" -> {
+                    // Added method to manually get battery status if needed
+                    result.success("N/A") // The actual status is sent via callback
                 }
                 else -> {
                     result.notImplemented()

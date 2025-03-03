@@ -43,6 +43,10 @@ abstract class PocSafeyPlatform extends PlatformInterface {
     throw UnimplementedError('startTrial() has not been implemented.');
   }
 
+  Future<void> stopTrial() {
+    throw UnimplementedError('stopTrial() has not been implemented.');
+  }
+
   Future<void> setFirstName(String firstName) {
     throw UnimplementedError('setFirstName() has not been implemented.');
   }

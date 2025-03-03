@@ -22,4 +22,8 @@ abstract class PocSafeyBackgroundPlatform extends PlatformInterface {
     PlatformInterface.verifyToken(instance, _token);
     _instance = instance;
   }
+
+  Future<String?> getBatteryStatus() {
+    throw UnimplementedError('getBatteryStatus() has not been implemented.');
+  }
 }

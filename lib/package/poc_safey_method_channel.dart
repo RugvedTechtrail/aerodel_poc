@@ -36,13 +36,20 @@ class MethodChannelPocSafey extends PocSafeyPlatform {
   }
 
   @override
+  Future<void> stopTrial() async {
+    await methodChannel.invokeMethod<void>('stopTrial');
+  }
+
+  @override
   Future<void> setFirstName(String firstName) async {
-    await methodChannel.invokeMethod<void>('setFirstName', {'firstName': firstName});
+    await methodChannel
+        .invokeMethod<void>('setFirstName', {'firstName': firstName});
   }
 
   @override
   Future<void> setLastName(String lastName) async {
-    await methodChannel.invokeMethod<void>('setLastName', {'lastName': lastName});
+    await methodChannel
+        .invokeMethod<void>('setLastName', {'lastName': lastName});
   }
 
   @override

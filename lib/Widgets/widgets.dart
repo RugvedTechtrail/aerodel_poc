@@ -379,47 +379,101 @@ class DeviceControlPanel extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: !controller.isConnected.value ||
-                              controller.isTesting.value
-                          ? null
-                          : () async {
-                              try {
-                                // Verify connection before starting
-                                final isStillConnected = await controller
-                                    .pocSafey
-                                    .getConnected()
-                                    .timeout(
-                                  const Duration(seconds: 5),
-                                  onTimeout: () {
+                    // ElevatedButton(
+                    //   onPressed: !controller.isConnected.value ||
+                    //           controller.isTesting.value
+                    //       ? null
+                    //       : () async {
+                    //           try {
+                    //             // Verify connection before starting
+                    //             final isStillConnected = await controller
+                    //                 .pocSafey
+                    //                 .getConnected()
+                    //                 .timeout(
+                    //               const Duration(seconds: 5),
+                    //               onTimeout: () {
+                    //                 Get.back(); // Remove loading indicator
+                    //                 throw TimeoutException(
+                    //                     'Connection check timed out');
+                    //               },
+                    //             );
+
+                    //             if (!isStillConnected!) {
+                    //               Get.back(); // Remove loading indicator
+                    //               throw Exception('Connection lost');
+                    //             }
+
+                    //             await controller.startTrial();
+                    //             Get.back(); // Remove loading indicator
+                    //           } on TimeoutException {
+                    //             Get.back(); // Remove loading indicator
+                    //             controller.handleError(
+                    //                 'Connection timeout. Please reconnect the device.');
+                    //             controller.isConnected.value = false;
+                    //           } catch (e) {
+                    //             Get.back(); // Remove loading indicator
+                    //             log('start test errro is ${e.toString()}');
+                    //             controller
+                    //                 .handleError('Error starting test: $e');
+                    //           }
+                    //         },
+                    //   child: Text(controller.isTesting.value
+                    //       ? 'Test in Progress...'
+                    //       : 'Start Test'),
+                    // ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        controller.isTesting.value
+                            ? ElevatedButton(
+                                onPressed: () async {
+                                  await controller.stopTrial();
+                                },
+                                child: Text('Stop Trial'))
+                            : SizedBox(),
+                        ElevatedButton(
+                          onPressed: !controller.isConnected.value ||
+                                  controller.isTesting.value
+                              ? null
+                              : () async {
+                                  try {
+                                    // Verify connection before starting
+                                    final isStillConnected = await controller
+                                        .pocSafey
+                                        .getConnected()
+                                        .timeout(
+                                      const Duration(seconds: 5),
+                                      onTimeout: () {
+                                        Get.back(); // Remove loading indicator
+                                        throw TimeoutException(
+                                            'Connection check timed out');
+                                      },
+                                    );
+
+                                    if (!isStillConnected!) {
+                                      Get.back(); // Remove loading indicator
+                                      throw Exception('Connection lost');
+                                    }
+
+                                    await controller.startTrial();
                                     Get.back(); // Remove loading indicator
-                                    throw TimeoutException(
-                                        'Connection check timed out');
-                                  },
-                                );
-
-                                if (!isStillConnected!) {
-                                  Get.back(); // Remove loading indicator
-                                  throw Exception('Connection lost');
-                                }
-
-                                await controller.startTrial();
-                                Get.back(); // Remove loading indicator
-                              } on TimeoutException {
-                                Get.back(); // Remove loading indicator
-                                controller.handleError(
-                                    'Connection timeout. Please reconnect the device.');
-                                controller.isConnected.value = false;
-                              } catch (e) {
-                                Get.back(); // Remove loading indicator
-                                log('start test errro is ${e.toString()}');
-                                controller
-                                    .handleError('Error starting test: $e');
-                              }
-                            },
-                      child: Text(controller.isTesting.value
-                          ? 'Test in Progress...'
-                          : 'Start Test'),
+                                  } on TimeoutException {
+                                    Get.back(); // Remove loading indicator
+                                    controller.handleError(
+                                        'Connection timeout. Please reconnect the device.');
+                                    controller.isConnected.value = false;
+                                  } catch (e) {
+                                    Get.back(); // Remove loading indicator
+                                    log('start test errro is ${e.toString()}');
+                                    controller
+                                        .handleError('Error starting test: $e');
+                                  }
+                                },
+                          child: Text(controller.isTesting.value
+                              ? 'Test in Progress...'
+                              : 'Start Test'),
+                        ),
+                      ],
                     ),
                   ],
                 )),
